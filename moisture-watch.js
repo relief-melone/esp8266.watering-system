@@ -68,9 +68,6 @@ module.exports = {
                     console.log('MoistureWatch: Turning on Sensor ' + index + ' on pin: ' + Options.Sensors[index].PowerPin);
                 }
             });
-
-
-
         },sensorCycleTime);
 
         var watering = false;
@@ -82,7 +79,8 @@ module.exports = {
             var currentMoisture = module.exports.calculateMoisture(currentRaw);
             if(new Date() - lastEmitted > emitDataFreq){
                 if(!currentRaw){
-                    // console.log("There is a problem with the data from the moisture Sensor");
+                    console.log("There is a problem with the data from the moisture Sensor");
+                    lastEmitted = new Date();                    
                 } else {
                     var output = {
                         CurrentMoisture: currentMoisture,
@@ -97,8 +95,8 @@ module.exports = {
                     eventEmitter.emit('data', output);
                     lastEmitted = new Date();
                     // console.log(output);
-                    }
                 }
+            }
 
             // var currentInterval = new Date() - lastTimeWatered;
             // // All conditions ok

@@ -38,7 +38,8 @@ var pumpParams = {
         }
     ]
 }
-
+var startTime = new Date();
+console.log('Starting up!');
 dns.lookup(hostName, function(err, result){
     if(!err){
         espWater = new EtherPort({

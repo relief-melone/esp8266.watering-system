@@ -31,7 +31,7 @@ module.exports = {
             console.log('Please inizialize pump first');
             return null;
         }
-        console.log('Starting Pump ' + Index);
+        console.log('Starting Pump ' + Index + ' with Pin ' + pumps[Index].PinNr1);
         pumps[Index].Pin1.high();
         pumps[Index].Running = true;
         pumps[Index].LastRun = new Date();
