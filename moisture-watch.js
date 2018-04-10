@@ -1,42 +1,50 @@
 var events = require('events');
 var five = require('johnny-five');
+var set = require('./environment/general-settings.js');
 
-var sensor;
 var powerPins = [];
-var emitDataFreq = 2000; //turning up the sensor freq seems to impact on its value. So here you can define, how often data is emitted
+var sensor;
+var emitDataFreq = 30000; //turning up the sensor freq seems to impact on its value. So here you can define, how often data is emitted
 var lastEmitted = new Date();
 var sensorCycleTime = 1*60000;
+
+var delayS = set.DelayS; //Usually too little time between two hardware actions (like turning on a pin) will make the actions not work. for this a delay is added to cylcles
+var delayM = set.DelayM;
+var delayL = set.DelayL;
 
 module.exports = {
     initialize: function(Options){
         // PowerPins are used later to just activate one moisture Sensor
-        Options.Sensors.forEach(function(sensor, index){
-            powerPins.push(new five.Pin(sensor.PowerPin));
-        });
         var eventEmitter = new events.EventEmitter();
 
-        // The sensor Values will always pass throug a single analog pin and sensor
-        sensor = new five.Sensor({
-            pin: Options.AnalogPin,
-            freq: 250
-        });
-
-        powerPins.forEach(function(powerPin, index){
-            if(index !==0){
-                powerPins[index].low();
-                console.log('MoistureWatch: Turning off Sensor ' + index + ' on pin: ' + Options.Sensors[index].PowerPin);
+        var index = 0;
+        var intervalInit = setInterval(function(){
+            if(index<Options.Sensors.length){
+                console.log('Setting Sensor pin ' + Options.Sensors[index].PowerPin);
+                powerPins.push(new five.Pin(Options.Sensors[index].PowerPin));
+                index++;
             } else {
-                console.log('Turning on Sensor 0');
+                console.log('Turning on initial Sensor');
                 powerPins[0].high();
+                clearInterval(intervalInit);
+                setTimeout(function(){
+                    console.log('pinsInitialized');
+                    eventEmitter.emit('pinsInitialized');
+                }, delayM);
             }
+        },delayM);
+
+        eventEmitter.on('pinsInitialized', function(){
+            sensor = new five.Sensor({
+                pin: Options.AnalogPin,
+                freq: 250,
+                type: "analog"
+            });
+            setTimeout(function(){
+                // console.log(powerPins);
+                eventEmitter.emit('ready', powerPins);
+            },delayM);
         });
-        // powerPins[0].high();
-
-        setTimeout(function(){
-            console.log('Moisture Sensors have been initialized');
-            eventEmitter.emit('ready');
-        },200);
-
         return eventEmitter;
     },
     calculateMoisture: function(Value){
@@ -54,20 +62,27 @@ module.exports = {
 
         var eventEmitter = new events.EventEmitter();
         var currentSensor = 0;
-
+        console.log('Starting moisture watch');
         // Cycle through sensors
         setInterval(function(){
+            var index = 0;
             currentSensor = (currentSensor + 1) % powerPins.length;
-            powerPins.forEach(function(powerPin, index){
-                console.log('Current Sensor Index: '+ currentSensor +'; CurrentIndex: '+ index);
-                if(index !== currentSensor){
-                    console.log('MoistureWatch: Turning off Sensor ' + index + ' on pin: ' + Options.Sensors[index].PowerPin);
-                    powerPins[index].low();
+            var interval = setInterval(function(){
+                if(index<powerPins.length){
+                    if(index !== currentSensor){
+                        powerPins[index].low();
+                        console.log('MoistureWatch: Turning off Sensor ' + index + ' on pin: ' + Options.Sensors[index].PowerPin);
+                    }
+                    index++;
                 } else {
-                    powerPins[index].high();
-                    console.log('MoistureWatch: Turning on Sensor ' + index + ' on pin: ' + Options.Sensors[index].PowerPin);
+                    console.log('MoistureWatch: Turning on Sensor ' + currentSensor + ' on pin: ' + Options.Sensors[currentSensor].PowerPin);
+                    clearInterval(interval);
+                    powerPins[currentSensor].high();
+                    setTimeout(function(){
+                        eventEmitter.emit('sensorSwitched');
+                    }, delayM);
                 }
-            });
+            },delayM);
         },sensorCycleTime);
 
         var watering = false;
@@ -80,7 +95,7 @@ module.exports = {
             if(new Date() - lastEmitted > emitDataFreq){
                 if(!currentRaw){
                     console.log("There is a problem with the data from the moisture Sensor");
-                    lastEmitted = new Date();                    
+                    lastEmitted = new Date();
                 } else {
                     var output = {
                         CurrentMoisture: currentMoisture,

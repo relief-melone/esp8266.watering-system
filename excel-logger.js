@@ -3,7 +3,7 @@ var Excel = require('exceljs');
 
 var workbook = new Excel.Workbook();
 var startDate = new Date();
-var filename = './logs/Log' + startDate.getFullYear() + '-' + (startDate.getMonth()+1) + '-' + startDate.getDate() + '.xlsx';
+var filename = './logs/Log' + startDate.getFullYear() + '-' + (startDate.getMonth()+1) + '-' + startDate.getDate() + '-' + startDate.getHours() + '.' + startDate.getMinutes() + '.xlsx';
 var logParams = {
     MinutesPerSave: 1,
     LastSaved : new Date('1900/01/01')

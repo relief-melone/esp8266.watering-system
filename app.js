@@ -15,26 +15,26 @@ var WateringSystem;
 var moistureSensorParams = {
     Sensors: [
         {
-            PowerPin: 0,
+            PowerPin: 16,
             AttachedPump: 0
         },
         {
-            PowerPin: 16,
+            PowerPin: 5,
             AttachedPump: 0
         }
     ],
     AnalogPin: "A0"
 };
 var wateringParams = {
-    WateringTime: 2000,
+    MlPerWatering: 250,
     MinimumMoisture: 35,
     MinimumInterval: 10000
 };
 var pumpParams = {
     pumps : [
         {
-            Pin1: 5,
-            Pin2: 4
+            Pin: 13,            //You only set one Pin as the Pump can only rotate in one direction
+            LitersPerHour: 110,
         }
     ]
 }
@@ -51,30 +51,49 @@ dns.lookup(hostName, function(err, result){
             repl: false,
             timeout: 1e5,
         });
+    } else {
+        console.log('ERROR CONNECTING TO BOARD!');
+        console.log(err);
+        return null;
     }
 
     WateringSystem.on('ready', function() {
-        console.log('Board ready');
+        console.log('Board ready after ' + (new Date() - startTime)/1000 + ' seconds' );
 
+        // Initialize the moisture sensors
+        console.log('|-----|  Initializing moisture sensors');
         var sensorsInitialized = MoistureWatch.initialize(moistureSensorParams);
+
         sensorsInitialized.on('ready', function(){
-
+            console.log('|||---| Initializing moisture monitor');
             var moistureMonitor = MoistureWatch.startMoistureWatch(moistureSensorParams);
-            var pumpsMonitor = PumpWatch.startPumpWatch(pumpParams);
-            // Feed the moisture monitor to the watering;
-            var wateringMonitor = WateringWatch.startWateringMonitoring(moistureMonitor, pumpsMonitor, wateringParams);
+            var pumpsMonitor;
+            var wateringMonitor;
 
-             // Logging
-             Logger.initialize({
-                 creator : 'Christian de Biasi',
-                 created : new Date()
-             });
-             Logger.logMoisture(moistureMonitor);
+            // Start the moisture monitor when moisture monitor sends data for the first time;
+            moistureMonitor.once('data', function(){
+                console.log('|||||-| Initializing pump watch');
+                pumpsMonitor = PumpWatch.startPumpWatch(pumpParams);
 
-            wateringMonitor.on('wateringNeeded',function(data){
-                // console.log('Watering Plant');
-                PumpWatch.startPumpFor(wateringParams.WateringTime, data.PumpIndex);
+                // Feed the moisture monitor to the watering;
+                pumpsMonitor.on('ready', function(){
+                    wateringMonitor = WateringWatch.startWateringMonitoring(moistureMonitor, pumpsMonitor, wateringParams);
+
+                    // Turn on moisture logging
+                    console.log('||||||| Starting logger');
+                    Logger.logMoisture(moistureMonitor);
+                    Logger.initialize({
+                        creator : 'Christian de Biasi',
+                        created : new Date()
+                    });
+
+                    // Turn on the pump watch
+                    wateringMonitor.on('wateringNeeded',function(data){
+                        // console.log('Watering Plant');
+                        PumpWatch.startPumpForMillilitres(wateringParams.MlPerWatering, data.PumpIndex, pumpParams);
+                    });
+                });
             });
         });
     });
-})
+});
