@@ -11,7 +11,10 @@
             var socket = io();
             socket.on('sensor-data', function(Data){
                 console.log(Data);
-            })
+            });
+            socket.on('watering-needed', function(Data){
+                console.log(Data);
+            });
         </script>
     </body>
 </html>
