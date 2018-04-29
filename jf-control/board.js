@@ -11,6 +11,7 @@ module.exports = {
             if(Ip){
                 WateringSystem = module.exports.initializeBoard(Ip, Port);
                 WateringSystem.on('ready', ()=>{
+                    console.log('Board initialized!');
                     initialized = true;
                     res({
                         msg: "Board Initialized!",

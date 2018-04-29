@@ -33,8 +33,6 @@ module.exports = {
         // PowerPins are used later to just activate one moisture Sensor
 
         return new Promise((res, rej)=>{
-
-
             // Initialize the sensors power supply
             if(!sensorsInitialized){
                 new Promise((res,rej) => {

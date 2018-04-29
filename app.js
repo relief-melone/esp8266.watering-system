@@ -8,6 +8,8 @@ var bodyParser = require('body-parser');
 var http = require('http').Server(app);
 var io = require('socket.io')(http);
 
+var cors = require('cors');
+
 // Routes
 var routesInit = require('./routes/initialize.js')(io);
 var routesTest = require('./routes/test.js');
@@ -33,8 +35,14 @@ io.on('connection', (socket)=>{
         console.log('user disconnected');
     });
 });
+app.use(cors());
+app.use('/', routesInit, function(req,res,next){
+    res.header("Access-Control-Allow-Origin", '*');
+    res.header('Access-Control-Allow-Methods', 'POST, GET, PUT, DELETE, OPTIONS' );
+    res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept");
+    next();
 
-app.use('/', routesInit);
+});
 app.get('/index', (req,res)=>{
     res.sendFile(__dirname + '/index.html');
 });

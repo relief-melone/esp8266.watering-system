@@ -24,18 +24,27 @@ module.exports = function(io){
         // Required Host and Port
 
         var data = req.body;
-        // The System will check if it should connect via ip or hostname (the hostname cannot be resolved in all networks)
-        var system = data.Ip ? board.initialize(null, data.Port, data.Ip) : board.initialize(data.Hostname, data.Port);
-        system.then(Data => {
+        if(!boardInitialized){
+            var system = data.Ip ? board.initialize(null, data.Port, data.Ip) : board.initialize(data.Hostname, data.Port);
+            system.then(Data => {
+                boardInitialized = true;
+                res.status(200).json({
+                    message: Data.msg
+                });
+            }).catch(Data =>{
+                res.status(505).json({
+                    message: "Couldn't connect to board"
+                });
+                console.log(Data);
+            });
+        } else {
+            boardInitialized = true;
             res.status(200).json({
-                message: Data.msg
+                message: "Board already initialized"
             });
-        }).catch(Data =>{
-            res.status(505).json({
-                message: "Couldn't connect to board"
-            });
-            console.log(Data);
-        });
+        }
+        // The System will check if it should connect via ip or hostname (the hostname cannot be resolved in all networks)
+
 
     });
 
@@ -57,7 +66,7 @@ module.exports = function(io){
                 // Intialize the sensors
                 console.log(data.Sensors);
                 var sensorInit = sensors.initialize().then(()=>{
-                    var moistureWatch = sensors.startMoistureWatch(JSON.parse(data.Sensors));
+                    var moistureWatch = sensors.startMoistureWatch(typeof(data.Sensors) === 'string' ? JSON.parse(data.Sensors) : data.Sensors);
                     moistureWatch.on('data', (Data)=>{
                         io.emit('sensor-data', Data);
                     });
@@ -81,7 +90,7 @@ module.exports = function(io){
             });
         }
 
-        var Pumps = pumps.initialize(JSON.parse(req.body.Pumps));
+        var Pumps = pumps.initialize(typeof(req.body.Pumps) === 'string' ? JSON.parse(req.body.Pumps) : req.body.Pumps);
         Pumps.on('ready', ()=>{
             res.status(200).json({
                 message: 'Pumps initialized'
@@ -100,7 +109,7 @@ module.exports = function(io){
                 message: "no watering paremeters supplied"
             });
         }
-        var WateringParameters = JSON.parse(req.body.WateringParameters);
+        var WateringParameters = typeof(req.body.WateringParameters)==='string' ? JSON.parse(req.body.WateringParameters) : req.body.WateringParameters;
         var WateringMonitor = watering.startWateringMonitoring(MoistureWatch, PumpMonitor, WateringParameters);
         WateringMonitor.on('wateringNeeded', function(data){
             io.emit('watering needed', data);
