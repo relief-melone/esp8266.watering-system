@@ -5,31 +5,35 @@ var initialized = false;
 var WateringSystem;
 
 module.exports = {
-    intialize: (HostName, Port) =>{
+    initialize: (HostName, Port, Ip) =>{
+
         return new Promise(function(res, rej){
-            dns.lookup(HostName, function(err, result){
-                if(err){
-                    return rej(err);
-                } else {
-                    var espWater = new EtherPort({
-                        host: result, port: Port
+            if(Ip){
+                WateringSystem = module.exports.initializeBoard(Ip, Port);
+                WateringSystem.on('ready', ()=>{
+                    initialized = true;
+                    res({
+                        msg: "Board Initialized!",
+                        WateringSystem: WateringSystem
                     });
-
-                    WateringSystem = new five.Board({
-                        port: espWater,
-                        repl: false,
-                        timeout: 1e5,
-                    });
-
-                    WateringSystem.on('ready', ()=>{
-                        initialized = true;
-                        res({
-                            msg: "Board Initialized!",
-                            WateringSystem: WateringSystem
+                });
+            } else {
+                dns.lookup(HostName, function(err, result){
+                    if(err){
+                        return rej(err);
+                    } else {
+                        WateringSystem = module.exports.initializeBoard(result, Port)
+                        WateringSystem.on('ready', ()=>{
+                            initialized = true;
+                            res({
+                                msg: "Board Initialized!",
+                                WateringSystem: WateringSystem
+                            });
                         });
-                    });
-                }
-            });
+                    }
+                });
+            }
+
         });
     },
     getBoard: () =>{
@@ -40,5 +44,19 @@ module.exports = {
         } else {
             return WateringSystem;
         }
+    },
+    initializeBoard: function(Ip, Port){
+        console.log('Connecting to Board IP:' + Ip +' Port:'+ Port);
+        var espWater = new EtherPort({
+            host: Ip, port: Port
+        });
+        console.log(espWater);
+        WateringSystem = new five.Board({
+            port: espWater,
+            repl: false,
+            timeout: 1e5,
+        });
+        return WateringSystem;
     }
+
 }

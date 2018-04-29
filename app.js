@@ -39,12 +39,6 @@ app.get('/index', (req,res)=>{
     res.sendFile(__dirname + '/index.html');
 });
 
-module.exports = {
-    io: function(){
-        return io;
-    }
-}
-
 http.listen('3000', ()=>{
     console.log('Backend Server running on port 3000');
 });

@@ -22,9 +22,11 @@ module.exports = function(io){
     routes.post('/initialize/Board', (req, res) => {
         // Check post request
         // Required Host and Port
-        console.log(io);
+
         var data = req.body;
-        board.intialize(data.Hostname, data.Port).then(Data => {
+        // The System will check if it should connect via ip or hostname (the hostname cannot be resolved in all networks)
+        var system = data.Ip ? board.initialize(null, data.Port, data.Ip) : board.initialize(data.Hostname, data.Port);
+        system.then(Data => {
             res.status(200).json({
                 message: Data.msg
             });
@@ -54,7 +56,7 @@ module.exports = function(io){
             } else {
                 // Intialize the sensors
                 console.log(data.Sensors);
-                var sensorInit = sensors.initialize(JSON.parse(data.Sensors)).then(()=>{
+                var sensorInit = sensors.initialize().then(()=>{
                     var moistureWatch = sensors.startMoistureWatch(JSON.parse(data.Sensors));
                     moistureWatch.on('data', (Data)=>{
                         io.emit('sensor-data', Data);

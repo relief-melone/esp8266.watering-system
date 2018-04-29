@@ -4,10 +4,11 @@ var set = require('../environment/general-settings.js');
 
 var pinIds = [16,5,4,0];
 var powerPins = [];
-var sensor;
+var sensor;             //The analog Sensor
+var sensors;            //The parameters of all the moisture sensors;
 var emitDataFreq = 30000; //turning up the sensor freq seems to impact on its value. So here you can define, how often data is emitted
 var lastEmitted = new Date();
-var sensorCycleTime = .25 *60000;
+var sensorCycleTime = 5 *1000;
 
 var delayS = set.DelayS; //Usually too little time between two hardware actions (like turning on a pin) will make the actions not work. for this a delay is added to cylcles
 var delayM = set.DelayM;
@@ -17,6 +18,8 @@ var delayXL = set.DelayXL;
 var analogPin = "A0";
 
 var sensorsInitialized = false;
+var moistureWatchInitialized = false;
+var moistureWatchInterval;
 
 var internalFunctions = {
 
@@ -26,49 +29,55 @@ var eventEmitter = new events.EventEmitter();
 
 
 module.exports = {
-    initialize: function(Sensors){
+    initialize: function(){
         // PowerPins are used later to just activate one moisture Sensor
 
         return new Promise((res, rej)=>{
-            // If the user has supplied more sensors than the board can take (4) reject the request
-            if(Sensors.length>pinIds.length){
-                rej({
-                    message: "You supplied more sensors than can be connected. Maximum Sensors: " + pinIds.length + ". You supplied: " + Sensors.length
+
+
+            // Initialize the sensors power supply
+            if(!sensorsInitialized){
+                new Promise((res,rej) => {
+                    var index = 0;
+                    var intervalInit = setInterval(function(){
+                        if(index>0){
+                            powerPins[index-1].low();
+                        }
+                        if(index<pinIds.length){
+                            console.log('Setting Sensor pin ' + pinIds[index]);
+                            powerPins.push(new five.Pin(pinIds[index]));
+                            index++;
+                        } else {
+                            clearInterval(intervalInit);
+                            setTimeout(function(){
+                                console.log('pinsInitialized');
+                                sensorsInitialized = true;
+                                res({
+                                    msg: "All Sensors initialized"
+                                });
+                            }, delayM);
+                        }
+                    },delayM);
+                }).then(()=>{
+                    // intialize the analog sensor:
+                    sensor = new five.Sensor({
+                        pin: analogPin,
+                        freq: 250,
+                        type: "analog"
+                    });
+                    setTimeout(function(){
+                        // console.log(powerPins);
+                        res(powerPins);
+                    },delayM);
                 });
-                return null;
-            }
-            new Promise((res,rej) => {
-                var index = 0;
-                var intervalInit = setInterval(function(){
-                    if(index>0){
-                        powerPins[index-1].low();
-                    }
-                    if(index<Sensors.length){
-                        console.log('Setting Sensor pin ' + pinIds[index]);
-                        powerPins.push(new five.Pin(pinIds[index]));
-                        index++;
-                    } else {
-                        clearInterval(intervalInit);
-                        setTimeout(function(){
-                            console.log('pinsInitialized');
-                            sensorsInitialized = true;
-                            res({
-                                msg: "All Sensors initialized"
-                            });
-                        }, delayM);
-                    }
-                },delayM);
-            }).then(()=>{
-                sensor = new five.Sensor({
-                    pin: analogPin,
-                    freq: 250,
-                    type: "analog"
-                });
+            } else {
+                console.log('Sensors had already been initialized');
                 setTimeout(function(){
                     // console.log(powerPins);
                     res(powerPins);
                 },delayM);
-            });
+            }
+
         });
     },
     getSensors: function(){
@@ -95,23 +104,32 @@ module.exports = {
             // MinimumInterval [minutes]         Time water will stop between 2 WateringSystem
 
         var currentSensor = 0;
+        sensors = Sensors;
         console.log('Starting moisture watch');
         // Cycle through sensors
 
-        setInterval(function(){
-            while(!Sensors[currentSensor].On){
-                currentSensor = (currentSensor+1) % Sensors.length;
-                console.log('While statement: Current Sensor = ' + currentSensor);
-            }
-            module.exports.getMoisture(Sensors, currentSensor).then(Data => {
-                eventEmitter.emit('data', Data);
-            }).catch(Err => {
-                console.log(Err)
-            });
-            currentSensor++;
-        },sensorCycleTime);
+        if(sensorsInitialized && moistureWatchInitialized){
 
+        } else {
+            moistureWatchInterval = setInterval(function(){
+                while(!sensors[currentSensor].On){
+                    currentSensor = (currentSensor+1) % sensors.length;
+                }
+                module.exports.getMoisture(sensors, currentSensor).then(Data => {
+                    eventEmitter.emit('data', Data);
+                }).catch(Err => {
+                    console.log(Err)
+                });
+                currentSensor++;
+            },sensorCycleTime);
+            moistureWatchInitialized = true;
+        }
         return eventEmitter;
+    },
+    stopMoistureWatch: function(){
+        clearInterval(moistureWatchInterval);
+        moistureWatchInitialized = false;
+        return true;
     },
     getMoistureWatch: function(){
         return eventEmitter;
