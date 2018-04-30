@@ -4,7 +4,7 @@ var set = require('../environment/general-settings.js');
 
 
 var pins;
-var pumpInitialized = false;
+var pumpsInitialized = false;
 var eventEmitter = new events.EventEmitter();
 var pumps = [];
 var pumpPins = [15,13,12,14];
@@ -16,27 +16,35 @@ var delayL = set.DelayL;
 module.exports = {
     initialize: function(PumpParams){
         var index = 0;
-        var interval = setInterval(function(){
-            if(index<PumpParams.length){
-                var element = PumpParams[index];
-                pumps[index] = {
-                    Id: index,
-                    PinNr: pumpPins[index],
-                    Pin: new five.Pin(pumpPins[index]),
-                    Running: false,
-                    LitersPerHour: element.LitersPerHour,
-                    On: element.On
+        if(!pumpsInitialized){
+            console.log('Initializing Pumps!');
+            var interval = setInterval(function(){
+                if(index<PumpParams.length){
+                    var element = PumpParams[index];
+                    pumps[index] = {
+                        Id: index,
+                        PinNr: pumpPins[index],
+                        Pin: new five.Pin(pumpPins[index]),
+                        Running: false,
+                        LitersPerHour: element.LitersPerHour,
+                        On: element.On
+                    }
+                    pumps[index].Pin.low();
+                    pumps[index].Initialized = true;
+                    console.log('Pump ' + index + ' has been initialized');
+                    index++;
+                } else  {
+                    pumpsInitialized = true;
+                    eventEmitter.emit('ready');
+                    clearInterval(interval);
                 }
-                pumps[index].Pin.low();
-                pumps[index].Initialized = true;
-                console.log('Pump ' + index + ' has been initialized');
-                index++;
-            } else  {
-                pumpInitialized = true;
-                eventEmitter.emit('ready');
-                clearInterval(interval);
-            }
-        }, delayM);
+            }, delayM);
+        } else {
+            setTimeout(function(){
+                eventEmitter.emit('ready')
+            }, delayM);
+        }
+
         return eventEmitter;
     },
     startPump: function(Index){
@@ -101,7 +109,7 @@ module.exports = {
         return Milliliters * millisecondsPerMillilitre;
     },
     getPumps: function(){
-        if(!pumpInitialized){
+        if(!pumpsInitialized){
             return {
                 err: "Pumps are not initialized yet"
             }
@@ -110,7 +118,7 @@ module.exports = {
         }
     },
     getPumpMonitor: function(){
-        if(!pumpInitialized){
+        if(!pumpsInitialized){
             return {
                 err: "Pumps are not initialized yet"
             }

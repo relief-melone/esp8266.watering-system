@@ -5,11 +5,13 @@ var sensors = require('../jf-control/sensors.js');
 var pumps = require('../jf-control/pumps.js');
 var watering = require('../jf-control/watering.js');
 
+var wateringParameters;
+
 
 var boardInitialized = false;
 var sensorsInitialized = false;
 var pumpsInitiliazied = false;
-var wateringWatchRunnung = false;
+var wateringWatchRunning = false;
 var dns = require('dns');
 
 var WateringSystem;
@@ -91,7 +93,7 @@ module.exports = function(io){
         }
 
         var Pumps = pumps.initialize(typeof(req.body.Pumps) === 'string' ? JSON.parse(req.body.Pumps) : req.body.Pumps);
-        Pumps.on('ready', ()=>{
+        Pumps.once('ready', ()=>{
             res.status(200).json({
                 message: 'Pumps initialized'
             });
@@ -109,15 +111,25 @@ module.exports = function(io){
                 message: "no watering paremeters supplied"
             });
         }
-        var WateringParameters = typeof(req.body.WateringParameters)==='string' ? JSON.parse(req.body.WateringParameters) : req.body.WateringParameters;
-        var WateringMonitor = watering.startWateringMonitoring(MoistureWatch, PumpMonitor, WateringParameters);
-        WateringMonitor.on('wateringNeeded', function(data){
-            io.emit('watering needed', data);
-            pumps.startPumpForMillilitres(WateringParameters.MlPerWatering, data.PumpIndex);
-        });
-        res.status(200).json({
-            message: "Watering Monitor has successfully been started"
-        });
+        wateringParameters = typeof(req.body.WateringParameters)==='string' ? JSON.parse(req.body.WateringParameters) : req.body.WateringParameters;
+        var WateringMonitor = watering.startWateringMonitoring(MoistureWatch, PumpMonitor, wateringParameters);
+        if(!wateringWatchRunning){
+            console.log('Routes/initialize: Watering Monitor initializing')
+            WateringMonitor.on('wateringNeeded', function(data){
+                io.emit('watering needed', data);
+                pumps.startPumpForMillilitres(wateringParameters.MlPerWatering, data.PumpIndex);
+            });
+            res.status(200).json({
+                message: "Watering Monitor has successfully been started"
+            });
+            wateringWatchRunning = true
+        } else {
+            console.log('Routes/initialize: Watering Monitor has already been started')
+            res.status(200).json({
+                message: "Watering Monitor has already been started. Updated parameters"
+            });
+        }
+
     });
 
     return routes;
