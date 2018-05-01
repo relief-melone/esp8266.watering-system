@@ -40,8 +40,12 @@ module.exports = {
                 }
             }, delayM);
         } else {
+            PumpParams.forEach((pump, index)=>{
+                pumps[index].LitersPerHour = pump.LitersPerHour;
+                pumps[index].On = pump.On;
+            });
             setTimeout(function(){
-                eventEmitter.emit('ready')
+                eventEmitter.emit('ready');
             }, delayM);
         }
 

@@ -116,8 +116,10 @@ module.exports = function(io){
         if(!wateringWatchRunning){
             console.log('Routes/initialize: Watering Monitor initializing')
             WateringMonitor.on('wateringNeeded', function(data){
-                io.emit('watering needed', data);
-                pumps.startPumpForMillilitres(wateringParameters.MlPerWatering, data.PumpIndex);
+                if(wateringParameters.On){
+                    io.emit('watering needed', data);
+                    pumps.startPumpForMillilitres(wateringParameters.MlPerWatering, data.PumpIndex);
+                }                
             });
             res.status(200).json({
                 message: "Watering Monitor has successfully been started"

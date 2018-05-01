@@ -3,7 +3,7 @@
 var events = require('events');
 var five = require('johnny-five');
 var monitorInitialized = false;
-var pumpStatus;
+var pumpStatus = [];
 var eventEmitter;
 var options;
 
@@ -25,7 +25,7 @@ module.exports = {
                     PumpIndex: data.AttachedPump,
                     Time: new Date()
                 };
-                if(!pumpStatus){
+                if(!pumpStatus[data.AttachedPump]){
                     // If no pumpStatus is yet available, then no pump has run yet. You can start watering
                     if(options.MinimumMoisture > data.CurrentMoisture){
 
@@ -44,7 +44,7 @@ module.exports = {
                 }
             });
             PumpInput.on('pumpStarted', function(data){
-                pumpStatus = data;
+                pumpStatus[data.AttachedPump] = data;
             });
             monitorInitialized = true;
         }
