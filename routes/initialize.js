@@ -118,8 +118,8 @@ module.exports = function(io){
             WateringMonitor.on('wateringNeeded', function(data){
                 if(wateringParameters.On){
                     io.emit('watering needed', data);
-                    pumps.startPumpForMillilitres(wateringParameters.MlPerWatering, data.PumpIndex);
-                }                
+                    pumps.startPumpForMillilitres(data.MlPerWatering, data.PumpIndex);
+                }
             });
             res.status(200).json({
                 message: "Watering Monitor has successfully been started"

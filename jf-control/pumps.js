@@ -27,6 +27,8 @@ module.exports = {
                         Pin: new five.Pin(pumpPins[index]),
                         Running: false,
                         LitersPerHour: element.LitersPerHour,
+                        MlPerWatering: element.MlPerWatering,
+                        MinimumIntervalInMinutes: element.MinimumIntervalInMinutes,
                         On: element.On
                     }
                     pumps[index].Pin.low();
@@ -42,6 +44,8 @@ module.exports = {
         } else {
             PumpParams.forEach((pump, index)=>{
                 pumps[index].LitersPerHour = pump.LitersPerHour;
+                pumps[index].MlPerWatering = pump.MlPerWatering;
+                pumps[index].MinimumIntervalInMinutes = pump.MinimumIntervalInMinutes;
                 pumps[index].On = pump.On;
             });
             setTimeout(function(){
@@ -62,7 +66,7 @@ module.exports = {
             pumps[Index].Pin.high();
             pumps[Index].Running = true;
             pumps[Index].LastRun = new Date();
-            eventEmitter.emit('pumpStarted', pumps);
+            eventEmitter.emit('pumpStarted', pumps, Index);
         } else {
             console.log('Pump ' + Index + ' will not run, because it is tuned off');
         }
@@ -77,7 +81,7 @@ module.exports = {
         console.log('Stopping Pump ' + Index);
         pumps[Index].Pin.low();
         pumps[Index].Running = false;
-        eventEmitter.emit('pumpStopped', pumps);
+        eventEmitter.emit('pumpStopped', pumps, Index);
     },
     startPumpFor: function(Time, Index){
         if(!pumps[Index].Initialized){

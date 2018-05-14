@@ -2,10 +2,16 @@
 
 var events = require('events');
 var five = require('johnny-five');
+
+var Pumps = require('./pumps.js');
+var Sensors = require('./sensors.js');
+
 var monitorInitialized = false;
 var pumpStatus = [];
 var eventEmitter;
 var options;
+
+var pumps;
 
 module.exports = {
     startWateringMonitoring: function(SensorInput, PumpInput, Options){
@@ -14,37 +20,38 @@ module.exports = {
 
         options = Options;
         console.log(options);
+        pumps = Pumps.getPumps();
         if(!monitorInitialized){
             var wateringInfo = [];
             eventEmitter = new events.EventEmitter();
 
             SensorInput.on('data', function(data){
-                // console.log(data)
+                console.log(data)
                 var output =  {
                     SensorIndex: data.PowerPinIndex,
                     PumpIndex: data.AttachedPump,
+                    MlPerWatering: pumps[data.AttachedPump].MlPerWatering,
+                    MinimumInterval: pumps[data.AttachedPump].MinimumInterval,
                     Time: new Date()
                 };
                 if(!pumpStatus[data.AttachedPump]){
                     // If no pumpStatus is yet available, then no pump has run yet. You can start watering
-                    if(options.MinimumMoisture > data.CurrentMoisture){
-
+                    if(data.MinimumMoisture > data.CurrentMoisture){
                         console.log("Watering of Plant with Sensor " + output.SensorIndex + ' needed!');
                         console.log(output);
                         eventEmitter.emit('wateringNeeded', output);
                     }
                 } else {
                     // If a pumpStatus is available, make sure the pump is not already running
-
-                    if(options.MinimumMoisture > data.CurrentMoisture && !pumpStatus[data.AttachedPump].Running && new Date() - pumpStatus[data.AttachedPump].LastRun > options.MinimumInterval){
+                    if(data.MinimumMoisture > data.CurrentMoisture && !pumpStatus[data.AttachedPump].Running && new Date() - pumpStatus[data.AttachedPump].LastRun > pumps[data.AttachedPump].MinimumIntervalInMinutes*60000){
                         eventEmitter.emit('wateringNeeded', output);
                         console.log("Watering of Plant with Sensor " + output.SensorIndex + ' needed!');
                         console.log(output);
                     }
                 }
             });
-            PumpInput.on('pumpStarted', function(data){
-                pumpStatus[data.AttachedPump] = data;
+            PumpInput.on('pumpStarted', function(data, index){
+                pumpStatus[index] = data[index];
             });
             monitorInitialized = true;
         }

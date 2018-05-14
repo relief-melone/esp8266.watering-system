@@ -172,7 +172,8 @@ module.exports = {
                                         SensorPin: "A" + sensor.pin,
                                         PowerPin: pinIds[Index],
                                         PowerPinIndex: Index,
-                                        AttachedPump: Sensors[Index].AttachedPump
+                                        AttachedPump: Sensors[Index].AttachedPump,
+                                        MinimumMoisture: Sensors[Index].MinimumMoisture
                                     }
                                     sensor.removeListener('data', ()=>{
                                         console.log('Listener Removed');
