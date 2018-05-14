@@ -26,7 +26,7 @@ module.exports = {
             eventEmitter = new events.EventEmitter();
 
             SensorInput.on('data', function(data){
-                console.log(data)
+                // console.log(data)
                 var output =  {
                     SensorIndex: data.PowerPinIndex,
                     PumpIndex: data.AttachedPump,
