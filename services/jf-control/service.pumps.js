@@ -1,6 +1,6 @@
 var five = require('johnny-five');
 var events = require('events');
-var set = require('../environment/general-settings.js');
+var set = require('../../environment/general-settings.js');
 
 
 var pins;

@@ -1,7 +1,7 @@
 const routes = require('express').Router();
 var bodyparser = require('body-parser');
-var board = require('../jf-control/board.js');
-var sensors = require('../jf-control/sensors.js');
+var board = require('../services/jf-control/service.board.js');
+var sensors = require('../services/jf-control/service.sensors.js');
 
 routes.get('/', (req, res) => {
     var WateringSystem = board.getBoard();

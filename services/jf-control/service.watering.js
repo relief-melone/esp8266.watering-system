@@ -1,10 +1,7 @@
 // This module will determine weather a plant needs to be watered or not
 
 var events = require('events');
-var five = require('johnny-five');
-
-var Pumps = require('./pumps.js');
-var Sensors = require('./sensors.js');
+var Pumps = require('./service.pumps.js');
 
 var monitorInitialized = false;
 var pumpStatus = [];

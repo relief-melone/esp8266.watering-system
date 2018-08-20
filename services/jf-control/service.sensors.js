@@ -1,6 +1,6 @@
 var events = require('events');
 var five = require('johnny-five');
-var set = require('../environment/general-settings.js');
+var set = require('../../environment/general-settings.js');
 
 var pinIds = [16,5,4,0];
 var powerPins = [];
@@ -75,7 +75,6 @@ module.exports = {
                     res(powerPins);
                 },delayM);
             }
-
         });
     },
     getSensors: function(){
